@@ -1,29 +1,31 @@
-import pandas as pd
-import sqlite3
+"""Load the Olist CSV files from data/raw/ into a local SQLite database (olist.db)."""
 import glob
 import os
+import sqlite3
 
-# 1. Création de la connexion
-conn = sqlite3.connect('olist.db')
+import pandas as pd
 
-# 2. On boucle sur tous les fichiers CSV du dossier
-path = './' #I create this variable so anybody with an other os just has to change it to find the file in an other folder 
-csv_files = glob.glob(os.path.join(path, "*.csv"))  #looks at the folder and create a list of all the files ending by '.csv'
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DIR = os.path.join(ROOT_DIR, "data", "raw")
+DB_PATH = os.path.join(ROOT_DIR, "olist.db")
 
-print(f"🚀 Début de l'importation de {len(csv_files)} fichiers...")
 
-for f in csv_files:
-    # We clean the name of the table which is currently conatining the path and the extension ".csv"
-    
-    table_name = os.path.basename(f).replace('olist_', '').replace('_dataset.csv', '')
-    
-    # Loading it in a panda data frame
-    df = pd.read_csv(f)
-    
-    # Injection in SQLite
-    df.to_sql(table_name, conn, if_exists='replace', index=False) # Send the data to the SQL database. If the table already exists, delete it and create a new one
-    #index=False so we don't create a useless column with the index of panda
-    print(f"✅ Table '{table_name}' créée ({len(df)} lignes)")
+def load_csv_to_sqlite():
+    csv_files = sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
+    if not csv_files:
+        raise SystemExit(f"No CSV file found in {RAW_DIR}. Download the Olist dataset from Kaggle first.")
 
-print("\n✨ Base de données 'olist.db' générée avec succès !")
-conn.close()
+    print(f"Loading {len(csv_files)} files into {DB_PATH}...")
+    with sqlite3.connect(DB_PATH) as conn:
+        for f in csv_files:
+            # olist_customers_dataset.csv -> customers
+            table_name = os.path.basename(f).replace("olist_", "").replace("_dataset.csv", "").replace(".csv", "")
+            df = pd.read_csv(f)
+            df.to_sql(table_name, conn, if_exists="replace", index=False)
+            print(f"  {table_name}: {len(df):,} rows")
+
+    print("Database ready.")
+
+
+if __name__ == "__main__":
+    load_csv_to_sqlite()

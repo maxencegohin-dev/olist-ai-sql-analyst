@@ -78,3 +78,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Keep the empty data folder in the repo
+!data/raw/.gitkeep
